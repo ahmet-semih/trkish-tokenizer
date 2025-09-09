@@ -13,7 +13,7 @@ pub enum TokenType {
     Bpe,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[pyclass]
 pub struct Token {
     #[pyo3(get)]
@@ -278,12 +278,25 @@ impl TurkishTokenizer {
         let parts: Vec<&str> = text.split(' ').collect();
         for (idx, part) in parts.iter().enumerate() {
             if !part.trim().is_empty() {
-                let tokens = self.tokenize_word(part);
-                final_tokens.extend(tokens);
+
+                let part_with_space = format!(" {}", part);
+
+                let tokens = self.tokenize_word(&part_with_space);
+
+                let mut cleaned_tokens = Vec::new();
+                for token in tokens {
+                    // If current token is uppercase_marker AND previous token was space_marker → remove space
+                    if token == self.uppercase_marker && !cleaned_tokens.is_empty() && cleaned_tokens.last().unwrap() == &self.space_marker 
+                    {
+                        cleaned_tokens.pop();
+                    }
+                    cleaned_tokens.push(token);
+                }
+
+
+                final_tokens.extend(cleaned_tokens);
             }
-            if idx < parts.len() - 1 {
-                final_tokens.push(self.space_marker.clone());
-            }
+            
         }
         
         final_tokens
@@ -294,17 +307,21 @@ impl TurkishTokenizer {
         let segments = self.camel_split_with_positions(word);
         
         for (seg, orig_pos) in segments {
+            // Make seg an owned String
+            let mut seg_string = seg.to_string();
+
+            // Prepend space if uppercase
             if orig_pos < word.len() && word.chars().nth(orig_pos).unwrap().is_uppercase() {
                 result.push(self.uppercase_marker.clone());
+                seg_string = format!(" {}", seg_string);
             }
-            
+
             let mut pos = 0;
-            let seg_chars: Vec<char> = seg.chars().collect();
-            
+            let seg_chars: Vec<char> = seg_string.chars().collect();
+
             while pos < seg_chars.len() {
                 let substr: String = seg_chars[pos..].iter().collect();
-                
-                // Try root lookup
+
                 if let Some((id, token)) = self.longest_prefix_lookup(&substr, &self.roots, Some(self.max_root_len)) {
                     let token_len = token.chars().count();
                     result.push(Token {
@@ -315,8 +332,7 @@ impl TurkishTokenizer {
                     pos += token_len;
                     continue;
                 }
-                
-                // Try suffix lookup
+
                 if let Some((id, token)) = self.longest_prefix_lookup(&substr, &self.suffixes, Some(self.max_suffix_len)) {
                     let token_len = token.chars().count();
                     result.push(Token {
@@ -327,8 +343,7 @@ impl TurkishTokenizer {
                     pos += token_len;
                     continue;
                 }
-                
-                // Try BPE lookup
+
                 if let Some((id, token)) = self.longest_prefix_lookup(&substr, &self.bpe_tokens, Some(self.max_bpe_len)) {
                     let token_len = token.chars().count();
                     result.push(Token {
@@ -339,8 +354,7 @@ impl TurkishTokenizer {
                     pos += token_len;
                     continue;
                 }
-                
-                // No match found, add unknown token
+
                 result.push(self.unknown_marker.clone());
                 pos += 1;
             }

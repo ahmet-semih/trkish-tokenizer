@@ -75,6 +75,7 @@ class TurkishTokenizer:
         for seg, orig_pos in segments:
             if orig_pos < len(word) and word[orig_pos].isupper():
                 result.append(self.uppercase_marker)
+                seg = ' ' + seg
             
             s = seg
             pos = 0
@@ -111,11 +112,19 @@ class TurkishTokenizer:
         
         parts = text.split(" ")
         for idx, part in enumerate(parts):
+            part = part.strip()
+            part = " " + part 
             if part.strip():
-                tokens, _ = self._tokenize_word(part)
-                final_tokens.extend(tokens)
-            if idx < len(parts) - 1:
-                final_tokens.append(self.space_marker)
+                tokens, _ = self._tokenize_word(part)    
+                
+                cleaned_tokens = []
+                for i, token in enumerate(tokens):
+                    # If this token is uppercase_marker, check previous token
+                    if token == self.uppercase_marker and len(cleaned_tokens) > 0 and cleaned_tokens[-1] == self.space_marker:
+                        cleaned_tokens.pop()  # remove the last " " before uppercase
+                    cleaned_tokens.append(token)
+
+                final_tokens.extend(cleaned_tokens)
         
         return final_tokens, uppercase_indices
     

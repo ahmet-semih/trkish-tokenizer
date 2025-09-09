@@ -179,7 +179,7 @@ class TurkishDecoder:
         if 100 <= token_id < 2080:
             if self._starts_with_vowel(next_token):
                 return tokens[1]
-            elif token_id <= 110 and ids[i + 1] == 20034:
+            elif token_id <= 110 and ids[i + 1] == 20034: #ı tokeni
                 return tokens[2]
             else:
                 return tokens[0]
