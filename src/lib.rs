@@ -283,14 +283,27 @@ impl TurkishTokenizer {
 
                 let tokens = self.tokenize_word(&part_with_space);
 
-                let mut cleaned_tokens = Vec::new();
-                for token in tokens {
-                    // If current token is uppercase_marker AND previous token was space_marker → remove space
-                    if token == self.uppercase_marker && !cleaned_tokens.is_empty() && cleaned_tokens.last().unwrap() == &self.space_marker 
+                
+                let mut cleaned_tokens: Vec<Token> = Vec::new();
+                for (i, token) in tokens.iter().enumerate() {
+                    // ✅ Condition 1: token ID not in range AND two previous tokens were uppercase_marker + space_marker
+                    if !(0 <= token.id && token.id <= 19999)
+                        && i >= 2
+                        && tokens[i - 2] == self.uppercase_marker
+                        && tokens[i - 1] == self.space_marker
                     {
-                        cleaned_tokens.pop();
+                        cleaned_tokens.pop(); // remove last token (space)
                     }
-                    cleaned_tokens.push(token);
+
+                    // ✅ Condition 2: token is uppercase_marker and previous token in cleaned_tokens is space_marker
+                    if *token == self.uppercase_marker
+                        && !cleaned_tokens.is_empty()
+                        && cleaned_tokens.last().unwrap() == &self.space_marker
+                    {
+                        cleaned_tokens.pop(); // remove the last " " before uppercase
+                    }
+
+                    cleaned_tokens.push(token.clone());
                 }
 
 

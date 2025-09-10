@@ -119,6 +119,10 @@ class TurkishTokenizer:
                 
                 cleaned_tokens = []
                 for i, token in enumerate(tokens):
+                    
+                    if not (0<=token["id"]<=19999) and tokens[i-2]==self.uppercase_marker and tokens[i-1]==self.space_marker:
+                        cleaned_tokens.pop(-1)
+
                     # If this token is uppercase_marker, check previous token
                     if token == self.uppercase_marker and len(cleaned_tokens) > 0 and cleaned_tokens[-1] == self.space_marker:
                         cleaned_tokens.pop()  # remove the last " " before uppercase
